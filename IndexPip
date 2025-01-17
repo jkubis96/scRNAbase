@@ -1,0 +1,401 @@
+#!/bin/bash 
+
+
+#########################################################################################################################
+
+
+function genome_downloading {
+
+	 while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --genome_link) 
+                genome_link="$2"
+               
+                shift 2
+                ;;
+            --annotation_link) 
+                annotation_link="$2"
+              
+                shift 2
+                ;;
+            --species) 
+                species="$2"
+                
+                shift 2
+                ;;
+           
+            *) 
+                echo "Unknown operation input: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+
+    echo -e "        _  ____   _         _____              _                      \n       | ||  _ \ (_)       / ____|            | |                    \n       | || |_) | _   ___ | (___   _   _  ___ | |_  ___  _ __ ___   \n   _   | ||  _ < | | / _ \ \___ \ | | | |/ __|| __|/ _ \| '_ \` _ \  \n  | |__| || |_) || || (_) |____) || |_| |\__ \| |_|  __/| | | | | | \n   \____/ |____/ |_| \___/|_____/  \__, ||___/ \__|\___||_| |_| |_|  \n                                    __/ |                                   \n                                   |___/                                   "
+
+
+    if [[ -z "$genome_link" || -z "$annotation_link" || -z "$species" ]]; then
+        echo "All arguments (--genome_link, --annotation_link, --species) must be provided."
+        exit 1
+    fi
+
+
+	species=$(echo $species | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+
+    
+
+    full_genome=$(pwd)/$species
+
+    
+
+    
+
+	mkdir -p $full_genome
+
+	cwd_=$(pwd)
+
+	cd $full_genome
+
+	wget ${annotation_link} -O annotation.gtf.gz
+	gunzip annotation.gtf.gz
+	wget ${genome_link} -O genome.fa.gz
+	gunzip genome.fa.gz
+	
+	cd $cwd_
+
+	
+}
+
+
+
+
+
+
+#########################################################################################################################
+
+
+function index_file {
+
+index_files=$full_genome/$species/index/*
+
+
+for i in $index_files
+do
+r=$(basename $i)
+if [[ $r == $reads_length ]]
+then
+
+check_index=$reads_length
+
+
+fi
+done
+
+}
+
+
+#########################################################################################################################
+
+function indexing {
+
+echo -e "\033[0;32m $(date) GTF reference file creating..."
+
+# debug
+# echo $optimize
+# echo $three_prime_utr
+# echo $five_prime_utr
+
+
+
+source=$(dirname $(which IndexPip))/scripts
+
+
+
+Rscript $source/genome_prep.R $full_genome/$species/annotation.gtf $full_genome/$species $source $three_prime_utr $five_prime_utr $extend $coding_elements $space $optimize
+
+
+echo -e "\033[0;32m $(date) Process DONE!"
+
+index_file
+
+echo ''
+echo -e "\033[0;34m $(date) Genome indexing start..."
+echo ''
+
+
+if [[ $check_index != $reads_length ]]
+then
+    
+    full_inx=$(pwd)/$species/index/$reads_length
+    mkdir -p $full_inx
+
+
+echo ''
+echo -e "\033[0;34m Start indexing"
+echo ''
+
+
+
+
+STAR --runThreadN $CPU  --runMode genomeGenerate --genomeDir $full_inx  --genomeFastaFiles $full_genome/$species/genome.fa  --sjdbGTFfile $full_genome/$species/correct_annotation.gtf --limitGenomeGenerateRAM $mememory --sjdbOverhang $reads_length
+
+echo -e "\033[0;32m $(date) Genome indexing done"
+
+
+echo ''
+echo ''
+
+
+
+elif [[ $check_index == $reads_length ]]
+then	
+	
+echo ''
+echo -e "\033[0;34m Index' $reads_length 'for' $species 'already exist"
+echo -e "\033[0;34m You can run analysis"
+echo ''
+
+
+
+fi
+
+}
+
+
+
+function genome_indexing {
+
+
+    
+	 while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --species) 
+                species=$2
+               
+                shift 2
+                ;;
+
+            --reads_length) 
+                reads_length=$2
+              
+                shift 2
+                ;;
+
+            --optimize) 
+                optimize=$2
+               
+                shift 2
+                ;;
+
+
+            --extend) 
+                extend=$2
+               
+                shift 2
+                ;;
+
+            --five_prime_utr) 
+                five_prime_utr=$2
+                
+                shift 2
+                    ;;
+
+            --three_prime_utr) 
+                three_prime_utr=$2
+                            
+                shift 2
+
+                    ;;
+
+
+            --space) 
+                space=$2
+
+                shift 2
+                    ;;
+
+
+            --coding_elements) 
+                coding_elements=$2
+                
+                shift 2
+                    ;;
+
+
+            --CPU) 
+                CPU=$2
+               
+                shift 2
+                ;;
+
+            --mememory) 
+                mememory=$2
+               
+                shift 2
+                ;;
+
+            *) 
+                echo "Unknown operation input: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    echo -e "        _  ____   _         _____              _                      \n       | ||  _ \ (_)       / ____|            | |                    \n       | || |_) | _   ___ | (___   _   _  ___ | |_  ___  _ __ ___   \n   _   | ||  _ < | | / _ \ \___ \ | | | |/ __|| __|/ _ \| '_ \` _ \  \n  | |__| || |_) || || (_) |____) || |_| |\__ \| |_|  __/| | | | | | \n   \____/ |____/ |_| \___/|_____/  \__, ||___/ \__|\___||_| |_| |_|  \n                                    __/ |                                   \n                                   |___/                                   "
+
+
+    if [[ -z "$reads_length" || -z "$species" ]]; then
+        echo "All arguments (--reads_length, --species) must be provided."
+        exit 1
+    fi
+
+
+    if [[ -z "$mememory" ]]; then
+                mememory=$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) / (1024 * 1024)))
+                mememory=$[$mememory * 1000000]
+    fi
+
+
+    if [[ -z "$CPU" ]]; then
+                CPU=$(( $(grep -c ^processor /proc/cpuinfo) - 2 ))
+    fi
+
+
+    if [[ -z "$coding_elements" ]]; then
+                coding_elements=EXON,CDS,TRANSCRIPT,MRNA
+    fi
+
+
+    if [[ -z "$space" ]]; then
+                space=100000
+    fi
+
+    
+    if [[ -z "$three_prime_utr" ]]; then
+                three_prime_utr=800
+    fi
+
+
+    if [[ -z "$five_prime_utr" ]]; then
+                five_prime_utr=400
+    fi
+
+
+    if [[ -z "$extend" ]]; then
+                extend=FALSE
+    fi
+
+
+    if [[ -z "$optimize" ]]; then
+                optimize=TRUE
+    fi
+
+
+
+
+
+
+	species=$(echo $species | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+
+  
+    
+    full_genome=$(pwd)
+
+
+
+    if [ -d $full_genome/$species ]; then
+        if [ ! -e $full_genome/$species/*.fa ]; then
+
+             if [ -e $full_genome/*.fa ]; then
+                mv $full_genome/*.fa $full_genome/$species/genome.fa
+                
+                anno_file=$(ls $(pwd)/*.{gtf,gff3,gff,gff2} 2>/dev/null | head -n 1)
+
+                mv anno_file $full_genome/$species/annotation.gtf
+
+       
+            fi
+       
+        fi
+    else
+        
+        if [ -e $full_genome/*.fa ]; then
+
+                mkdir -p $(pwd)/$species/index
+
+                mv $full_genome/*.fa $full_genome/$species/genome.fa
+                
+                anno_file=$(ls $(pwd)/*.{gtf,gff3,gff,gff2} 2>/dev/null | head -n 1)
+                mv $anno_file $full_genome/$species/annotation.gtf
+
+                indexing
+        else
+
+            echo -e "\033[1;31m\nGenome file (.fa) and annotation file (.gff3 / *.gff2 / .gff / .gtf) are missing.\033[0m"
+            exit 1
+
+        fi
+    fi
+
+
+
+}
+
+
+function help {
+    echo -e "\033[1;32m\nUsage:\033[0m"
+    echo -e "  ./script.sh [command] [options]\n"
+    
+    echo -e "\033[1;32mAvailable commands:\033[0m"
+    echo -e "  \033[1;34mgenome_downloading\033[0m    Download genome and annotation files."
+    echo -e "  \033[1;34mgenome_indexing\033[0m      Create reference files and index the genome.\n"
+    
+    echo -e "\033[1;32mOptions for \033[1;34mgenome_downloading\033[0m:\033[0m"
+    echo -e "  --genome_link <URL>           URL to download the genome file (required)"
+    echo -e "  --annotation_link <URL>       URL to download the annotation file (required)"
+    echo -e "  --species <string>            Name of the species (e.g., Homo_sapiens) (required)"
+    
+    echo -e "\033[1;32mOptions for \033[1;34mgenome_indexing\033[0m:\033[0m"
+    echo -e "  --species <string>            Name of the species (e.g., Homo_sapiens) (required)"
+    echo -e "  --reads_length <int>          Length of reads for STAR index (required)"
+    echo -e "  --CPU <int>                   Number of threads to use (optional, default: number of CPU cores - 2)"
+    echo -e "  --mememory <int>              Amount of memory for STAR (optional, default: all available RAM)\n"
+
+    echo -e "\033[1;32m\nAdditional parms:\033[0m"
+
+    echo -e "  --optimize <bool>             Run GTF/GFF3 file adjustment (optional, default: TRUE)"
+    echo -e "  --extend <bool>               Extend parameter for genome prep (optional, default: FALSE)"
+    echo -e "  --five_prime_utr <int>        Length of 5' UTR (optional, default: 400)"
+    echo -e "  --three_prime_utr <int>       Length of 3' UTR (optional, default: 1000)"
+    echo -e "  --coding_elements <list>      List of coding annotation elements (optional, default: EXON,CDS,TRANSCRIPT,MRNA)"
+    echo -e "  --space <int>                 Minimal differential factor for separating features [genes] (optional, default: (100000))"
+
+
+
+    
+    echo -e "\033[1;32mExamples:\033[0m"
+    echo -e "  \033[1;34mDownload genome and annotation:\033[0m"
+    echo -e "    IndexPip genome_downloading --genome_link URL --annotation_link URL --species Homo_sapiens"
+    
+    echo -e "  \033[1;34mIndex the genome:\033[0m"
+    echo -e "    IndexPip genome_indexing --species Homo_sapiens --reads_length 100 --CPU 8\n"
+}
+
+
+
+
+
+if [[ "$1" == "genome_downloading" ]]; then
+    shift  
+    genome_downloading "$@"
+
+elif [[ "$1" == "genome_indexing" ]]; then
+    shift  
+    genome_indexing "$@"
+
+elif [[ "$1" == "--help" ]]; then
+    shift  
+    help "$@"
+    
+fi

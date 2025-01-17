@@ -1,0 +1,243 @@
+#!/bin/bash 
+
+
+fasta_dir=$(pwd)
+adapters_path=$(dirname $(which IndexPip))/requirements_file/Adapters.fa
+mkdir -p results
+mkdir -p results/matrices
+mkdir -p tmp
+tmp_dir=$(pwd)/tmp
+results_dir=$(pwd)/results
+
+
+
+function matrices_creating {
+
+		 while [[ "$#" -gt 0 ]]; do
+        case $1 in
+
+			--umi_length) 
+                umi_length="$2"
+               
+                shift 2
+                ;;
+
+
+			--reads_length) 
+                reads_length="$2"
+               
+                shift 2
+                ;;
+
+
+            --species) 
+                species="$2"
+                
+                shift 2
+                ;;
+
+            --qc_reads) 
+                qc_reads="$2"
+
+                shift 2
+                ;;
+
+
+            --annotation_names) 
+                annotation_names="$2"
+                
+                shift 2
+                ;;
+
+
+            --annotation_side) 
+                annotation_side="$2"
+            
+                shift 2
+                ;;
+
+            --multi) 
+                multi="$2"
+            
+                shift 2
+                ;;
+
+			--CPU) 
+                CPU="$2"
+              
+                shift 2
+                ;;
+            
+           
+            *) 
+                echo "Unknown operation input: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    echo -e "        _  ____   _         _____              _                      \n       | ||  _ \ (_)       / ____|            | |                    \n       | || |_) | _   ___ | (___   _   _  ___ | |_  ___  _ __ ___   \n   _   | ||  _ < | | / _ \ \___ \ | | | |/ __|| __|/ _ \| '_ \` _ \  \n  | |__| || |_) || || (_) |____) || |_| |\__ \| |_|  __/| | | | | | \n   \____/ |____/ |_| \___/|_____/  \__, ||___/ \__|\___||_| |_| |_|  \n                                    __/ |                                   \n                                   |___/                                   "
+
+
+    if [[ -z "$umi_length" || -z "$reads_length" || -z "$species" ]]; then
+        echo "All arguments (--species, --reads_length, --umi_length) must be provided."
+        exit 1
+    fi
+
+
+    if [[ -z "$qc_reads" ]]; then
+            qc_reads=TRUE
+    fi
+
+    if [[ -z "$CPU" ]]; then
+                CPU=$(( $(grep -c ^processor /proc/cpuinfo) - 2 ))
+    fi
+
+    if [[ -z "$annotation_side" ]]; then
+                annotation_side=exon,transcript,three_prime_UTR,five_prime_UTR,CDS
+    fi
+
+    if [[ -z "$annotation_names" ]]; then
+                annotation_names=gene_id,gene_name
+    fi
+
+    if [[ -z "$multi" ]]; then
+                multi=FALSE
+    fi
+
+
+
+
+	species=$(echo $species | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+
+
+	genome_dir=$(dirname $(which IndexPip))/genome/$species
+
+
+	if [ ! -d $genome_dir/index/$reads_length ]; then
+		echo "Directory $genome_dir/index/$reads_length does not exist. The species or read length annotation is missing. Please check the input species or read length, or run the IndexingPip function to prepare the genome annotations properly"
+		exit 1
+	fi
+
+    log=$results_dir/process.log.out
+
+	for i in $fasta_dir/*.fastq.gz; do
+    if [[ "$i" == *"_R1"* ]]; then
+
+		# get filename
+        filename=$(basename "$i")
+        echo "Analysis started for: ${filename%%_R1*} ..."
+
+        echo "Analysis started for: ${filename%%_R1*} ..." >> $log 2>&1
+
+		# trime and qc of reads
+
+        echo "Reads Quality Control (QC) for: ${filename%%_R1*} ..."
+		if [[ $qc_reads == *"TRUE"* ]];
+		then
+
+		fastp -i $fasta_dir/$filename -I $fasta_dir/${filename/_R1/_R2} -o $tmp_dir/trimmed_$filename -O $tmp_dir/trimmed_${filename/_R1/_R2} --adapter_fasta $adapters_path --trim_poly_x --length_required $umi_length --html $results_dir/${filename%%_R1*}_quality_report.html >> $log 2>&1
+		
+		elif [[ $qc_reads == *"FALSE"* ]];
+		then
+
+		fastp -i $fasta_dir/$filename -I $fasta_dir/${filename/_R1/_R2} -o $tmp_dir/trimmed_$filename -O $tmp_dir/trimmed_${filename/_R1/_R2} --adapter_fasta $adapters_path -Q --trim_poly_x --length_required $umi_length --html $results_dir/${filename%%_R1*}_quality_report.html >> $log 2>&1
+		
+		fi
+
+		# umi extraction
+        echo "UMI extraction for: ${filename%%_R1*} ..."
+		umi_tools extract -I $tmp_dir/trimmed_${filename/_R1/_R2} --bc-pattern=$(printf 'N%.0s' $(seq 1 $umi_length)) --read2-in=$tmp_dir/trimmed_$filename --stdout=$tmp_dir/extracted_${filename/_R1/_R2}  --read2-out=$tmp_dir/umi_$filename >> $log 2>&1
+
+		rm $tmp_dir/extracted_${filename/_R1/_R2}
+
+		gunzip $tmp_dir/umi_$filename
+
+		# mapping
+        echo "Reads mapping for: ${filename%%_R1*} ..."
+		STAR --outReadsUnmapped Fastx --outFilterMismatchNmax 10 --outSAMtype BAM SortedByCoordinate --outFilterMultimapNmax 3 --runThreadN $CPU --genomeDir $genome_dir/index/$reads_length --readFilesIn ${tmp_dir}/umi_${filename%.gz} --outFileNamePrefix $tmp_dir/${filename%%_R1*}_ --outStd Log  > $results_dir/${filename%%_R1*}_STARrun.log.out 2>&1 >> $log 2>&1
+
+		# deduplication
+        echo "Reads deduplication for: ${filename%%_R1*} ..."
+
+        samtools index $tmp_dir/${filename%%_R1*}_Aligned.sortedByCoord.out.bam >> $log 2>&1
+		umi_tools dedup -I $tmp_dir/${filename%%_R1*}_Aligned.sortedByCoord.out.bam -S $results_dir/${filename%%_R1*}_deduplicated.bam >> $log 2>&1
+
+		# matrix create
+        echo "Reads deduplication for: ${filename%%_R1*} ..."
+        IFS=',' read -r -a annotation_array <<< "$annotation_names"
+        IFS=',' read -r -a annotation_side_array <<< "$annotation_side"
+
+        for name in "${annotation_array[@]}"; do
+
+            for side in "${annotation_side_array[@]}"; do
+
+
+                if [[ $multi == *"TRUE"* ]];
+                then
+                
+                featureCounts -a $genome_dir/correct_annotation.gtf -o $results_dir/matrices/${name}_${side}_${filename%%_R1*}_genes_count_matrix.txt -f -M -t $side -g $name -T $CPU $results_dir/${filename%%_R1*}_deduplicated.bam >> $log 2>&1
+
+                elif [[ $multi == *"FALSE"* ]];
+                then
+
+                featureCounts -a $genome_dir/correct_annotation.gtf -o $results_dir/matrices/${name}_${side}_${filename%%_R1*}_genes_count_matrix.txt -f -t $side -g $name -T $CPU $results_dir/${filename%%_R1*}_deduplicated.bam >> $log 2>&1
+                
+                fi
+
+            done
+
+
+        done
+
+
+    fi
+	done
+
+
+}
+
+
+function matrices_creating_help {
+    echo "Usage: matrices_creating [OPTIONS]"
+    echo ""
+    echo "This function processes FASTQ files to create gene and transcript count matrices. It includes steps like read trimming, UMI extraction, mapping, deduplication, and matrix creation."
+    echo ""
+    echo "Options:"
+    echo "  --umi_length <int>              Length of the Unique Molecular Identifier (UMI). Required."
+    echo "  --reads_length <int>            Read length for the input sequencing reads. Required."
+    echo "  --species <string>              Species name (e.g., Homo_sapiens, Mus_musculus). Required."
+    echo "  --qc_reads <TRUE|FALSE>         Whether to perform quality control of reads (TRUE by default)."
+    echo "  --multi <TRUE|FALSE>            Count reads mapped to multiple locations (FALSE by default)."
+    echo "  --annotation_names <string>     Names of annotations to include, provided as a list. Defaults to 'gene_id,gene_name'."
+    echo "  --annotation_side <string>      Specifies the side of the annotation, e.g., 'exon,intron,UTR,five_prime_UTR,three_prime_UTR,transcript'. 
+                                            Defaults to 'exon,transcript,three_prime_UTR,five_prime_UTR,CDS'."
+    echo "  --CPU <int>                     Number of CPU threads to use. Defaults to (total CPU cores - 2)."
+    echo ""
+    echo "Example:"
+    echo "CountFeatures matrices_creating --umi_length 12 --reads_length 100 --species Homo_sapiens --qc_reads TRUE"
+    echo ""
+    echo "Note:"
+    echo "  - All required arguments (--umi_length, --reads_length, --species) must be provided."
+    echo "  - Ensure that the genome directory and annotation files are correctly set up using the IndexingPip function."
+    echo ""
+    echo "This script assumes the presence of the following tools in your environment:"
+    echo "  - fastp: for read trimming and quality control"
+    echo "  - umi_tools: for UMI extraction and deduplication"
+    echo "  - STAR: for mapping reads to the reference genome"
+    echo "  - featureCounts: for generating gene and transcript count matrices"
+}
+
+
+if [[ "$1" == "matrices_creating" ]]; then
+    shift  
+    matrices_creating "$@"
+
+elif [[ "$1" == "--help" ]]; then
+    shift  
+    matrices_creating_help "$@"
+    
+fi
+
+
+
