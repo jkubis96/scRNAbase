@@ -58,27 +58,27 @@ docker pull jkubis96/scrna_base:1.0.5
 
 #### Genome directories hierarchy
 
-genome/ ................................................... Main directory
-├── Homo_sapiens/ ............................... Subdirectory for Homo sapiens genome
-│   └── index/ ............................................Subfolder for indexes and annotations
-│       ├── 100/ ..............................................Index for read length 100
-│       └── 150/ ..............................................Index for read length 150
-├── Mus_musculus/ ...............................Subdirectory for Mus musculus genome
-│   └── index/ ...........................................Subfolder for indexes and annotations
-│       ├── 100/ ..............................................Index for read length 100
-│       └── 150/ ..............................................Index for read length 150
+genome/ ................................................... Main directory<br />
+├── Homo_sapiens/ ............................... Subdirectory for Homo sapiens genome<br />
+│   └── index/ ............................................Subfolder for indexes and annotations<br />
+│       ├── 100/ ..............................................Index for read length 100<br />
+│       └── 150/ ..............................................Index for read length 150<br />
+├── Mus_musculus/ ...............................Subdirectory for Mus musculus genome<br />
+│   └── index/ ...........................................Subfolder for indexes and annotations<br />
+│       ├── 100/ ..............................................Index for read length 100<br />
+│       └── 150/ ..............................................Index for read length 150<br />
 
 <br />
 
 
 #### Genome Downloading
 
-genome_downloading - download genome and annotation files
+genome_downloading - download genome and annotation files<br />
 
-Options for genome_downloading:
-  --genome_link (URL) - URL to download the genome file (required)
-  --annotation_link (URL) - URL to download the annotation file (required)
-  --species (string) - name of the species (e.g., Homo_sapiens) (required)
+Options for genome_downloading:<br />
+  --genome_link (URL) - URL to download the genome file (required)<br />
+  --annotation_link (URL) - URL to download the annotation file (required)<br />
+  --species (string) - name of the species (e.g., Homo_sapiens) (required)<br />
 
 <br />
 
@@ -100,19 +100,19 @@ IndexPip genome_downloading --genome_link URL --annotation_link URL --species Ho
  genome_indexing - create reference files and index the genome
 
 
-Options for genome_indexing:
-  --species (string) - name of the species (e.g., Homo_sapiens) (required)
-  --reads_length (int) - length of reads for STAR index (required)
-  --CPU (int) - number of threads to use (optional, default: number of CPU cores - 2)
-  --memory (int) - amount of memory for STAR (optional, default: all available RAM)
+Options for genome_indexing:<br />
+  --species (string) - name of the species (e.g., Homo_sapiens) (required)<br />
+  --reads_length (int) - length of reads for STAR index (required)<br />
+  --CPU (int) - number of threads to use (optional, default: number of CPU cores - 2)<br />
+  --memory (int) - amount of memory for STAR (optional, default: all available RAM)<br />
 
-Additional parameters:
-  --optimize <bool>             Run GTF/GFF3 file adjustment (optional, default: TRUE)
-  --extend <bool>               Extend parameter for genome prep (optional, default: FALSE)
-  --five_prime_utr <int>        Length of 5' UTR (optional, default: 400)
-  --three_prime_utr <int>       Length of 3' UTR (optional, default: 1000)
-  --coding_elements <list>      List of coding annotation elements (optional, default: EXON,CDS,TRANSCRIPT,MRNA)
-  --space <int>                 Minimal differential factor for separating features [genes] (optional, default: 100000)
+Additional parameters:<br />
+  --optimize <bool>             Run GTF/GFF3 file adjustment (optional, default: TRUE)<br />
+  --extend <bool>               Extend parameter for genome prep (optional, default: FALSE)<br />
+  --five_prime_utr <int>        Length of 5' UTR (optional, default: 400)<br />
+  --three_prime_utr <int>       Length of 3' UTR (optional, default: 1000)<br />
+  --coding_elements <list>      List of coding annotation elements (optional, default: EXON,CDS,TRANSCRIPT,MRNA)<br />
+  --space <int>                 Minimal differential factor for separating features [genes] (optional, default: 100000)<br />
 
 <br />
 
@@ -133,43 +133,43 @@ IndexPip genome_indexing --species Homo_sapiens --reads_length 100 --optimize TR
 
 #### Fastq - experimental data directories
 
-data/ ......................................................Main directory for experimental FASTQ data
-├── name.1_R1.fastq.gz .....................Read 1 of sample 1 in FASTQ format (compressed)
-├── name.1_R2.fastq.gz .....................Read 2 of sample 1 in FASTQ format (compressed)
-├── name.2_R1.fastq.gz .....................Read 1 of sample 2 in FASTQ format (compressed)
-├── name.2_R2.fastq.gz .....................Read 2 of sample 2 in FASTQ format (compressed)
-├── results/ ..........................................Directory for analysis results
-│   └── name.1.fastp_report.html ..........Quality control report for sample 1 (generated by fastp)
-│   └── name.2.fastp_report.html ..........Quality control report for sample 2 (generated by fastp)
-│   └── matrices/ ....................................Subdirectory for count matrices
-│       ├── gene_id_exon_name.1_genes_count_matrix ....Count matrix  exon sample 1
-│       ├── gene_id_UTR_name.1_genes_count_matrix .....Count matrix  UTR sample 1
-│       ├── gene_id_exon_name.2_genes_count_matrix ....Count matrix  exon sample 2
-│       ├── gene_id_UTR_name.2_genes_count_matrix .....Count matrix  UTR sample 2
+data/ ......................................................Main directory for experimental FASTQ data<br />
+├── name.1_R1.fastq.gz .....................Read 1 of sample 1 in FASTQ format (compressed)<br />
+├── name.1_R2.fastq.gz .....................Read 2 of sample 1 in FASTQ format (compressed)<br />
+├── name.2_R1.fastq.gz .....................Read 1 of sample 2 in FASTQ format (compressed)<br />
+├── name.2_R2.fastq.gz .....................Read 2 of sample 2 in FASTQ format (compressed)<br />
+├── results/ ..........................................Directory for analysis results<br />
+│   └── name.1.fastp_report.html ..........Quality control report for sample 1 (generated by fastp)<br />
+│   └── name.2.fastp_report.html ..........Quality control report for sample 2 (generated by fastp)<br />
+│   └── matrices/ ....................................Subdirectory for count matrices<br />
+│       ├── gene_id_exon_name.1_genes_count_matrix ....Count matrix  exon sample 1<br />
+│       ├── gene_id_UTR_name.1_genes_count_matrix .....Count matrix  UTR sample 1<br />
+│       ├── gene_id_exon_name.2_genes_count_matrix ....Count matrix  exon sample 2<br />
+│       ├── gene_id_UTR_name.2_genes_count_matrix .....Count matrix  UTR sample 2<br />
 
 
 <br />
 
 #### Reads Mapping
 
-matrices_creating - function processes FASTQ files to create gene and transcript count matrices. It includes steps such as read trimming, UMI extraction, mapping, deduplication, and matrix creation.
+matrices_creating - function processes FASTQ files to create gene and transcript count matrices. It includes steps such as read trimming, UMI extraction, mapping, deduplication, and matrix creation.<br />
 
-Options:
-  --umi_length <int>              Length of the Unique Molecular Identifier (UMI). Required.
-  --reads_length <int>            Read length for the input sequencing reads. Required.
-  --species <string>              Species name (e.g., Homo_sapiens, Mus_musculus). Required.
-  --qc_reads <TRUE|FALSE>         Whether to perform quality control of reads (TRUE by default).
-  --multi <TRUE|FALSE>            Count reads mapped to multiple locations (FALSE by default).
-  --annotation_names <string>     Names of annotations to include, provided as a list. Defaults to 'gene_id,gene_name'.
-  --annotation_side <string>      Specifies the side of the annotation, e.g., 'exon,intron,UTR,five_prime_UTR,three_prime_UTR,transcript'. 
-                                   Defaults to 'exon,transcript,three_prime_UTR,five_prime_UTR,CDS'.
-  --CPU <int>                     Number of CPU threads to use. Defaults to (total CPU cores - 2).
+Options:<br />
+  --umi_length (int) ........................Length of the Unique Molecular Identifier (UMI). Required.<br />
+  --reads_length (int) .....................Read length for the input sequencing reads. Required.<br />
+  --species (string) .........................Species name (e.g., Homo_sapiens, Mus_musculus). Required.<br />
+  --qc_reads (TRUE|FALSE) .........Whether to perform quality control of reads (TRUE by default).<br />
+  --multi (TRUE|FALSE) ................Count reads mapped to multiple locations (FALSE by default).<br />
+  --annotation_names (string) ........Names of annotations to include, provided as a list. Defaults to 'gene_id,gene_name'.<br />
+  --annotation_side (string) .............Specifies the side of the annotation, e.g., 'exon,intron,UTR,five_prime_UTR,three_prime_UTR,transcript'.
+                                   
+  --CPU (int) .................................... Number of CPU threads to use. Defaults to (total CPU cores - 2).<br />
 
 
 
-Note:
-  - All required arguments (--umi_length, --reads_length, --species) must be provided.
-  - Ensure that the genome directory and annotation files are correctly set up using the IndexingPip function.
+Note:<br />
+  - All required arguments (--umi_length, --reads_length, --species) must be provided.<br />
+  - Ensure that the genome directory and annotation files are correctly set up using the IndexingPip function.<br />
 
 <br />
 
